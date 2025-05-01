@@ -10,13 +10,13 @@ import (
 type Lexer struct {
 	src []byte
 
-	ch    rune
-	pos   int
-	rdPos int
-	line  int
+	ch     rune
+	pos    int
+	rdPos  int
+	line   int
+	column int
 
-	insertSemi bool
-	mode       int
+	mode int
 }
 
 const (
@@ -48,10 +48,11 @@ func (r *Lexer) next() {
 		// error
 	}
 
-	// Increment line number when newline is found
 	if s == '\n' {
 		r.line++
-		//r.pos = 0
+		r.column = 0
+	} else {
+		r.column++
 	}
 
 	r.rdPos += w
@@ -59,7 +60,7 @@ func (r *Lexer) next() {
 }
 
 func (r *Lexer) skipWhitespace() {
-	for r.ch == ' ' || r.ch == '\t' || r.ch == '\n' && !r.insertSemi || r.ch == '\r' {
+	for r.ch == ' ' || r.ch == '\t' || r.ch == '\n' || r.ch == '\r' {
 		r.next()
 	}
 }
@@ -75,8 +76,7 @@ func (r *Lexer) peek() byte {
 func (r *Lexer) Lex() (pos token.Position, tok token.Token, lit string) {
 scanAgain:
 	r.skipWhitespace()
-	pos = token.Position{Line: r.line, Column: r.pos}
-	insertSemi := false
+	pos = token.Position{Line: r.line, Column: r.column}
 	switch ch := r.ch; {
 	case isLetter(ch):
 		lit = r.lexIdentifier()
@@ -85,35 +85,25 @@ scanAgain:
 			tok = token.Lookup(lit)
 		} else {
 			tok = token.IDENT
-			insertSemi = true
 		}
 	case isDecimal(ch) || ch == '.' && isDecimal(rune(r.peek())):
-		insertSemi = true
 		tok, lit = r.lexNumber()
 	default:
 		r.next()
 		switch ch {
 		case EOF:
-			if r.insertSemi {
-				r.insertSemi = false
-				return pos, token.SEMICOLON, ";"
-			}
-
 			return pos, token.EOF, ""
 		case '\n':
-			r.insertSemi = false
-			return pos, token.SEMICOLON, "\n"
+			r.next()
+			goto scanAgain
 		case '"':
-			insertSemi = true
 			tok = token.STRING
 			lit = r.lexString()
 		case '\'':
-			insertSemi = true
 			tok = token.CHAR
 			lit = r.lexChar()
 		case '/':
 			if r.ch == '/' {
-				insertSemi = r.insertSemi
 				comment := r.lexComment()
 				if r.mode&CommentMode == 0 {
 					goto scanAgain
@@ -138,16 +128,13 @@ scanAgain:
 		case '[':
 			tok = token.LBRACKET
 		case ']':
-			insertSemi = true
 			tok = token.RBRACKET
 		default:
-			insertSemi = r.insertSemi
 			tok = token.ILLEGAL
 			lit = string(ch)
 		}
 	}
 
-	r.insertSemi = insertSemi
 	return
 }
 

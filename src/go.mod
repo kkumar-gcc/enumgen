@@ -1,1 +1,0 @@
-module github.com/kkumar-gcc/enumgen/src

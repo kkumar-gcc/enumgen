@@ -2,7 +2,7 @@ SourceFile       ::= { Definition } EOF ;
 
 Definition       ::= EnumDefinition | Comment ;
 
-EnumDefinition   ::= { Comment } 'enum' Identifier [ TypeSpec ] MemberList ;
+EnumDefinition   ::= { Comment } 'enum' Identifier [ TypeSpec ] : MemberList ;
 
 TypeSpec         ::= '[' Type { ',' Type } ']' ;
 
