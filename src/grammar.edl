@@ -1,0 +1,23 @@
+SourceFile       ::= { Definition } EOF ;
+
+Definition       ::= EnumDefinition | Comment ;
+
+EnumDefinition   ::= { Comment } 'enum' Identifier [ TypeSpec ] MemberList ;
+
+TypeSpec         ::= '[' Type { ',' Type } ']' ;
+
+Type             ::= Identifier { '.' Identifier } ;
+
+MemberList       ::= { MemberDefinition } ;
+
+MemberDefinition ::= { Comment } Identifier [ MemberAssignment ] [ Terminator ] ;
+
+MemberAssignment ::= '=' ( Literal | KeyValue ) ;
+
+KeyValue         ::= Literal ':' Literal ;
+
+Literal          ::= INT | FLOAT | CHAR | STRING | Identifier ;
+
+Comment          ::= '//' .+ ;
+
+Terminator       ::= ',' | ';' ;
