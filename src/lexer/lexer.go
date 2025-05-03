@@ -8,7 +8,8 @@ import (
 )
 
 type Lexer struct {
-	src []byte
+	filename string
+	src      []byte
 
 	ch     rune
 	pos    int
@@ -24,12 +25,14 @@ const (
 	CommentMode = 1 << iota
 )
 
-func New(src []byte, mode int) *Lexer {
+func New(filename string, src []byte, mode int) *Lexer {
 	l := &Lexer{
-		src:  src,
-		line: 1,
-		ch:   ' ',
-		mode: mode,
+		filename: filename,
+		src:      src,
+		line:     1,
+		column:   0,
+		ch:       ' ',
+		mode:     mode,
 	}
 	l.next()
 	return l
@@ -42,21 +45,30 @@ func (r *Lexer) next() {
 		return
 	}
 
+	// set current byte position
 	r.pos = r.rdPos
-	s, w := rune(r.src[r.rdPos]), 1
-	if s == 0 {
-		// error
-	}
 
-	if s == '\n' {
+	// decode next rune
+	ch, w := rune(r.src[r.rdPos]), 1
+	if ch >= utf8.RuneSelf {
+		var size int
+		if ch, size = utf8.DecodeRune(r.src[r.rdPos:]); size > 0 {
+			w = size
+		}
+	}
+	r.rdPos += w
+	r.ch = ch
+
+	if r.ch == '\n' {
 		r.line++
 		r.column = 0
-	} else {
-		r.column++
+		return
 	}
-
-	r.rdPos += w
-	r.ch = s
+	if r.ch == '\t' {
+		r.column += w
+		return
+	}
+	r.column++
 }
 
 func (r *Lexer) skipWhitespace() {
@@ -76,7 +88,7 @@ func (r *Lexer) peek() byte {
 func (r *Lexer) Lex() (pos token.Position, tok token.Token, lit string) {
 scanAgain:
 	r.skipWhitespace()
-	pos = token.Position{Line: r.line, Column: r.column}
+	pos = token.Position{Filename: r.filename, Line: r.line, Column: r.column}
 	switch ch := r.ch; {
 	case isLetter(ch):
 		lit = r.lexIdentifier()
@@ -143,6 +155,7 @@ func (r *Lexer) lexIdentifier() string {
 
 	for rdPos, b := range r.src[r.rdPos:] {
 		if 'a' <= b && b <= 'z' || 'A' <= b && b <= 'Z' || b == '_' || '0' <= b && b <= '9' {
+			r.column++
 			continue
 		}
 

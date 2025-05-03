@@ -65,12 +65,12 @@ func (p *Parser) Parse() *ast.File {
 
 		if p.tokenIs(token.ENUM) {
 			decl := p.parseEnum()
-			if !p.tokenIs(token.SEMICOLON) {
-				p.errorExpected("';' after enum declaration")
-			} else {
+			file.Declarations = append(file.Declarations, decl)
+
+			// Skip any extra tokens until we're at a position to parse a new declaration
+			for !p.tokenIs(token.EOF) && !p.tokenIs(token.ENUM) && !p.tokenIs(token.COMMENT) {
 				p.next()
 			}
-			file.Declarations = append(file.Declarations, decl)
 		} else {
 			p.errorExpected("enum declaration")
 			p.next()
@@ -110,12 +110,17 @@ func (p *Parser) parseEnum() *ast.EnumDefinition {
 	}
 
 	if !p.expect(token.COLON, "':' after enum declaration") {
+		// Skip to next potential valid token
+		for !p.tokenIs(token.EOF) && !p.tokenIs(token.SEMICOLON) && !p.tokenIs(token.ENUM) {
+			p.next()
+		}
 		return enum
 	}
 
 	for {
+		// Consume any comments before the member
 		if p.tokenIs(token.COMMENT) {
-			enum.Members = append(enum.Members, p.parseMember())
+			p.consumeComments()
 			continue
 		}
 
@@ -138,8 +143,29 @@ func (p *Parser) parseEnum() *ast.EnumDefinition {
 			default:
 				p.errorExpected("',' or ';' after enum member")
 				enum.Members = append(enum.Members, member)
+				// Try to recover by skipping to next semicolon or enum
+				for !p.tokenIs(token.EOF) && !p.tokenIs(token.SEMICOLON) && !p.tokenIs(token.ENUM) {
+					p.next()
+				}
+				if p.tokenIs(token.SEMICOLON) {
+					p.next()
+				}
 				return enum
 			}
+		}
+
+		// If we get here, we couldn't parse any more members
+		if !p.tokenIs(token.SEMICOLON) && !p.tokenIs(token.EOF) {
+			p.errorExpected("';' after enum declaration")
+			// Try to recover by skipping to next semicolon or enum
+			for !p.tokenIs(token.EOF) && !p.tokenIs(token.SEMICOLON) && !p.tokenIs(token.ENUM) {
+				p.next()
+			}
+			if p.tokenIs(token.SEMICOLON) {
+				p.next()
+			}
+		} else if p.tokenIs(token.SEMICOLON) {
+			p.next()
 		}
 
 		return enum
@@ -199,6 +225,8 @@ func (p *Parser) parseMember() *ast.MemberDefinition {
 		p.errorExpected("identifier")
 		return nil
 	}
+
+	// Use saved position for member name
 	m := &ast.MemberDefinition{
 		Doc:  lead,
 		Name: ast.Ident{NamePos: p.pos, Name: p.lit},
