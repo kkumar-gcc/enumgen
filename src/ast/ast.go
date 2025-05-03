@@ -188,10 +188,19 @@ func (r *MemberDefinition) End() token.Position {
 	return r.Name.End()
 }
 func (r *MemberDefinition) String() string {
-	if r.Value != nil {
-		return r.Name.String() + " = " + r.Value.String()
+	var out string
+	if r.Doc != nil {
+		out += r.Doc.String() + "\n"
 	}
-	return r.Name.String()
+	if r.Value != nil {
+		out += r.Name.String() + " = " + r.Value.String()
+	} else {
+		out += r.Name.String()
+	}
+	if r.TermPos.IsValid() {
+		out += ";"
+	}
+	return out
 }
 
 func (r *EnumDefinition) Pos() token.Position { return r.EnumPos }
@@ -202,7 +211,12 @@ func (r *EnumDefinition) End() token.Position {
 	return r.Name.End()
 }
 func (r *EnumDefinition) String() string {
-	out := "enum " + r.Name.String()
+	var out string
+	if r.Doc != nil {
+		out += r.Doc.String() + "\n"
+	}
+
+	out = "enum " + r.Name.String()
 	if r.TypeSpec != nil {
 		out += " " + r.TypeSpec.String()
 	}
@@ -231,6 +245,14 @@ func (r *File) End() token.Position {
 }
 func (r *File) String() string {
 	var out string
+	if r.Doc != nil {
+		out += r.Doc.String() + "\n"
+	}
+
+	for _, cg := range r.Comments {
+		out += cg.String() + "\n"
+	}
+
 	for _, decl := range r.Declarations {
 		out += decl.String() + "\n"
 	}

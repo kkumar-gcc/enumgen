@@ -3,7 +3,7 @@ package repl
 import (
 	"bufio"
 	"fmt"
-	"github.com/kkumar-gcc/enumgen/src/token"
+	"github.com/kkumar-gcc/enumgen/src/parser"
 	"io"
 	"strings"
 
@@ -33,23 +33,23 @@ func Start(in io.Reader, out io.Writer) {
 
 		src := strings.Join(lines, "\n")
 		l := lexer.New([]byte(src), lexer.CommentMode)
-		for {
-			pos, tok, lit := l.Lex()
-			if tok == token.EOF {
-				break
-			}
-			fmt.Printf("%s\t%s\t%s\n", pos, tok, lit)
-		}
-		//p := parser.New(l)
-		//
-		//program := p.Parse()
-		//if p.Errors().Len() != 0 {
-		//	printParserErrors(out, p.Errors())
-		//	continue
+		//for {
+		//	pos, tok, lit := l.Lex()
+		//	if tok == token.EOF {
+		//		break
+		//	}
+		//	fmt.Printf("%s\t%s\t%s\n", pos, tok, lit)
 		//}
-		//
-		//io.WriteString(out, program.String())
-		//io.WriteString(out, "\n")
+		p := parser.New(l)
+
+		program := p.Parse()
+		if p.Errors().Len() != 0 {
+			printParserErrors(out, p.Errors())
+			continue
+		}
+
+		io.WriteString(out, program.String())
+		io.WriteString(out, "\n")
 	}
 }
 
