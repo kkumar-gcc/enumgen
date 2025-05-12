@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/kkumar-gcc/enumgen/src/codegen"
 	"github.com/kkumar-gcc/enumgen/src/compiler/rules"
 	"github.com/kkumar-gcc/enumgen/src/compiler/stages"
 	"github.com/kkumar-gcc/enumgen/src/contracts/compiler"
@@ -15,24 +16,26 @@ var compilationRules = []compiler.Rule{
 }
 
 func CompileFile(filePath string, outputDir string, targetLang string, strict bool) (*compiler.Context, error) {
+	options := make(map[string]any)
+
 	ctx := &compiler.Context{
 		SourcePath:       filePath,
 		OutputDir:        outputDir,
 		TargetLang:       targetLang,
 		Errors:           make(errors.ErrorList, 0),
-		GenerationConfig: make(map[string]interface{}),
+		GenerationConfig: options,
 		Strict:           strict,
 	}
 
-	content, err := os.ReadFile(filePath)
+	source, err := os.ReadFile(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read source file: %v", err)
+		return nil, fmt.Errorf("failed to read source file: %w", err)
 	}
 
-	ctx.SourceCode = content
+	ctx.SourceCode = source
 
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create output directory: %v", err)
+		return nil, fmt.Errorf("failed to create output directory: %w", err)
 	}
 
 	pipeline := NewPipeline()
@@ -40,8 +43,12 @@ func CompileFile(filePath string, outputDir string, targetLang string, strict bo
 		AddStage(stages.NewSymbolCollector()).
 		AddStage(stages.NewTypeResolver()).
 		AddStage(stages.NewValidator(compilationRules)).
-		AddStage(stages.NewIRGenerator())
+		AddStage(stages.NewIRGenerator()).
+		AddStage(codegen.NewCodeGenerationStage())
 
-	err = pipeline.Execute(ctx)
-	return ctx, err
+	if err := pipeline.Execute(ctx); err != nil {
+		return ctx, err
+	}
+
+	return ctx, nil
 }

@@ -21,7 +21,7 @@ type Context struct {
 	OutputDir        string
 	GenerationConfig map[string]any
 
-	OutputFiles []OutputFile
+	OutputFiles []*OutputFile
 
 	Errors errors.ErrorList
 

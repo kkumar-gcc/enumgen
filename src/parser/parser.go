@@ -104,9 +104,11 @@ func (p *Parser) parseEnum() *ast.EnumDefinition {
 	enum.Name = ast.Ident{NamePos: p.pos, Name: p.lit}
 	p.next()
 
-	if p.tokenIs(token.LBRACKET) {
-		enum.TypeSpec = p.parseTypeSpec()
+	if !p.tokenIs(token.LBRACKET) {
+		p.errorExpected("'['")
+		return enum
 	}
+	enum.TypeSpec = p.parseTypeSpec()
 
 	if !p.expect(token.COLON, "':' after enum declaration") {
 		// Skip to next potential valid token

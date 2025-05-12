@@ -45,21 +45,17 @@ func (t *Transformer) VisitEnum(node *ast.EnumDefinition) any {
 	var keyType, valueType compiler.Type
 	if node.TypeSpec != nil && len(node.TypeSpec.Types) > 0 {
 		if len(node.TypeSpec.Types) == 1 {
-			// Single type enum (basic literal values)
 			valueType = t.resolveType(node.TypeSpec.Types[0].Name.Name)
 		} else if len(node.TypeSpec.Types) >= 2 {
-			// Key-value enum
 			keyType = t.resolveType(node.TypeSpec.Types[0].Name.Name)
 			valueType = t.resolveType(node.TypeSpec.Types[1].Name.Name)
 		}
 	}
 
-	// Default to string if no type is specified
 	if valueType == nil {
 		valueType = t.resolveType("string")
 	}
 
-	// Convert members
 	var members []compiler.IREnumMember
 	for _, member := range node.Members {
 		if irMember := t.VisitMember(member); irMember != nil {
