@@ -2,6 +2,7 @@ package stages
 
 import (
 	"github.com/kkumar-gcc/enumgen/src/contracts/compiler"
+	"github.com/kkumar-gcc/enumgen/src/errors"
 )
 
 type Validator struct {
@@ -28,7 +29,7 @@ func (r *Validator) Process(ctx *compiler.Context) error {
 		for _, rule := range r.rules {
 			issues := rule.Check(ctx, decl)
 			for _, issue := range issues {
-				if issue.Severity >= compiler.SeverityError {
+				if issue.Severity >= errors.SeverityError {
 					ctx.Validations.Errors = append(ctx.Validations.Errors, issue)
 				} else {
 					ctx.Validations.Warnings = append(ctx.Validations.Warnings, issue)

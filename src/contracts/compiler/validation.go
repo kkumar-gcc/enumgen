@@ -1,6 +1,9 @@
 package compiler
 
-import "github.com/kkumar-gcc/enumgen/src/token"
+import (
+	"github.com/kkumar-gcc/enumgen/src/errors"
+	"github.com/kkumar-gcc/enumgen/src/token"
+)
 
 type ValidationResult struct {
 	Errors   []Issue
@@ -12,14 +15,6 @@ type Issue struct {
 	Message  string
 	Fix      string
 	RuleName string
-	Severity Severity
+	Severity errors.Severity
+	Filename string
 }
-
-type Severity int
-
-const (
-	SeverityError Severity = iota
-	SeverityWarning
-	SeverityInfo
-	SeverityFatal
-)

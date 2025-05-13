@@ -7,6 +7,7 @@ import (
 
 	"github.com/kkumar-gcc/enumgen/src/ast"
 	"github.com/kkumar-gcc/enumgen/src/contracts/compiler"
+	"github.com/kkumar-gcc/enumgen/src/errors"
 )
 
 type MemberNamingRule struct {
@@ -49,14 +50,15 @@ func (r *MemberNamingRule) Check(ctx *compiler.Context, node ast.Node) []compile
 					Message:  msg,
 					Fix:      fix,
 					RuleName: r.Name(),
-					Severity: compiler.SeverityError,
+					Severity: errors.SeverityError,
+					Filename: ctx.SourcePath,
 				})
 			}
 
 			if strings.Contains(memberName, "_") {
-				severity := compiler.SeverityWarning
+				severity := errors.SeverityWarning
 				if r.strict {
-					severity = compiler.SeverityError
+					severity = errors.SeverityError
 				}
 
 				parts := strings.Split(memberName, "_")
@@ -77,6 +79,7 @@ func (r *MemberNamingRule) Check(ctx *compiler.Context, node ast.Node) []compile
 					Fix:      fmt.Sprintf("Consider renaming to %s", suggestedName),
 					RuleName: r.Name(),
 					Severity: severity,
+					Filename: ctx.SourcePath,
 				})
 			}
 
@@ -95,7 +98,8 @@ func (r *MemberNamingRule) Check(ctx *compiler.Context, node ast.Node) []compile
 						Message:  fmt.Sprintf("member name %s should not mix capitalization with underscores", memberName),
 						Fix:      "Choose either an all_lowercase_with_underscores or CamelCase naming style",
 						RuleName: r.Name(),
-						Severity: compiler.SeverityError,
+						Severity: errors.SeverityError,
+						Filename: ctx.SourcePath,
 					})
 				}
 			}
@@ -107,7 +111,8 @@ func (r *MemberNamingRule) Check(ctx *compiler.Context, node ast.Node) []compile
 						Message:  fmt.Sprintf("member name %s is already used in another enum and may cause confusion", memberName),
 						Fix:      fmt.Sprintf("Consider using a more specific name such as %s%s", enumName, memberName),
 						RuleName: r.Name(),
-						Severity: compiler.SeverityError,
+						Severity: errors.SeverityError,
+						Filename: ctx.SourcePath,
 					})
 				}
 			}

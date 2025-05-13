@@ -5,6 +5,7 @@ import (
 
 	"github.com/kkumar-gcc/enumgen/src/ast"
 	"github.com/kkumar-gcc/enumgen/src/contracts/compiler"
+	"github.com/kkumar-gcc/enumgen/src/errors"
 	"github.com/kkumar-gcc/enumgen/src/token"
 )
 
@@ -122,7 +123,7 @@ func (r *TypeCompatibilityRule) newError(pos token.Position, msg, fix string) co
 		Message:  msg,
 		Fix:      fix,
 		RuleName: r.Name(),
-		Severity: compiler.SeverityError,
+		Severity: errors.SeverityError,
 	}
 }
 

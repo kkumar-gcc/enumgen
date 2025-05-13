@@ -7,6 +7,7 @@ import (
 
 	"github.com/kkumar-gcc/enumgen/src/ast"
 	"github.com/kkumar-gcc/enumgen/src/contracts/compiler"
+	"github.com/kkumar-gcc/enumgen/src/errors"
 )
 
 type EnumNaming struct {
@@ -23,7 +24,7 @@ func (r *EnumNaming) Name() string {
 	return "EnumNaming"
 }
 
-func (r *EnumNaming) Check(_ *compiler.Context, node ast.Node) []compiler.Issue {
+func (r *EnumNaming) Check(ctx *compiler.Context, node ast.Node) []compiler.Issue {
 	issues := make([]compiler.Issue, 0)
 
 	enumNode, ok := node.(*ast.EnumDefinition)
@@ -40,14 +41,15 @@ func (r *EnumNaming) Check(_ *compiler.Context, node ast.Node) []compiler.Issue 
 			Message:  fmt.Sprintf("enum name %s must begin with uppercase letter", name),
 			Fix:      fmt.Sprintf("Rename to %s%s", strings.ToUpper(name[:1]), name[1:]),
 			RuleName: r.Name(),
-			Severity: compiler.SeverityError,
+			Severity: errors.SeverityError,
+			Filename: ctx.SourcePath,
 		})
 	}
 
 	if strings.Contains(name, "_") {
-		severity := compiler.SeverityWarning
+		severity := errors.SeverityWarning
 		if r.strict {
-			severity = compiler.SeverityError
+			severity = errors.SeverityError
 		}
 
 		parts := strings.Split(name, "_")
@@ -64,6 +66,7 @@ func (r *EnumNaming) Check(_ *compiler.Context, node ast.Node) []compiler.Issue 
 			Fix:      fmt.Sprintf("Consider renaming to %s", suggestedName),
 			RuleName: r.Name(),
 			Severity: severity,
+			Filename: ctx.SourcePath,
 		})
 	}
 
