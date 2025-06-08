@@ -19,7 +19,7 @@ type Context struct {
 
 	TargetLang       string
 	OutputDir        string
-	GenerationConfig map[string]any
+	GenerationConfig map[string]string
 
 	OutputFiles []*OutputFile
 

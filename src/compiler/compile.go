@@ -15,15 +15,15 @@ var compilationRules = []compiler.Rule{
 	rules.NewTypeCompatibilityRule(),
 }
 
-func CompileFile(filePath string, outputDir string, targetLang string, strict bool) (*compiler.Context, error) {
-	options := make(map[string]any)
-
+// CompileFile compiles an enum definition file and generates code for the target language
+// It applies the provided generation options to the code generator
+func CompileFile(filePath string, outputDir string, targetLang string, strict bool, generationOptions map[string]string) (*compiler.Context, error) {
 	ctx := &compiler.Context{
 		SourcePath:       filePath,
 		OutputDir:        outputDir,
 		TargetLang:       targetLang,
 		Errors:           make(errors.ErrorList, 0),
-		GenerationConfig: options,
+		GenerationConfig: generationOptions,
 		Strict:           strict,
 	}
 
@@ -31,11 +31,12 @@ func CompileFile(filePath string, outputDir string, targetLang string, strict bo
 	if err != nil {
 		return nil, fmt.Errorf("failed to read source file: %w", err)
 	}
-
 	ctx.SourceCode = source
 
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create output directory: %w", err)
+	if ctx.OutputDir != "" {
+		if err := os.MkdirAll(ctx.OutputDir, 0755); err != nil {
+			return nil, fmt.Errorf("failed to create output directory: %w", err)
+		}
 	}
 
 	pipeline := NewPipeline()

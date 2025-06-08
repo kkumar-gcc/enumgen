@@ -8,7 +8,7 @@ type Generator interface {
 	Name() string
 	Language() string
 	FileExtension() string
-	Generate(module compiler.IRModule, outputDir string, options map[string]interface{}) ([]*compiler.OutputFile, error)
-	GetDefaultOptions() map[string]interface{}
+	Generate(module compiler.IRModule, options map[string]string) ([]*compiler.OutputFile, error)
+	GetDefaultOptions() map[string]string
 	OptionHelp() string
 }
