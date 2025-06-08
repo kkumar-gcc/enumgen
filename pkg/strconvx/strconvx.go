@@ -2,7 +2,6 @@ package strconvx
 
 import (
 	"strconv"
-	"time"
 )
 
 // ParseBool converts a string to a boolean.
@@ -58,33 +57,17 @@ func ToFloat64(s string, defaultValue float64) float64 {
 	return val
 }
 
-// A list of common time layouts to try when parsing.
-var commonTimeLayouts = []string{
-	time.RFC3339,
-	"2006-01-02T15:04:05", // ISO 8601 without timezone
-	"2006-01-02 15:04:05",
-	"2006-01-02",
-	"02-Jan-2006",
-	"01/02/2006",
-	time.RFC822,
-}
-
-// ParseTime converts a string to a time.Time by trying a list of common layouts.
-func ParseTime(s string) (time.Time, error) {
-	for _, layout := range commonTimeLayouts {
-		t, err := time.Parse(layout, s)
-		if err == nil {
-			return t, nil
-		}
+// Unquote removes surrounding quotes from a string.
+// If the string is not quoted, it returns the original string.
+// This is useful for parsing JSON strings or similar formats.
+//
+//	Unquote("\"foo\"") // "foo"
+//	Unquote("foo") // "foo"
+//	Unquote("\"foo") // "\"foo"
+//	Unquote("foo\"") // "foo\""
+func Unquote(s string) string {
+	if len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"' {
+		return s[1 : len(s)-1]
 	}
-	return time.Time{}, &time.ParseError{Layout: "multiple", Value: s, Message: ": could not parse time"}
-}
-
-// ToTime converts a string to a time.Time, returning a default value if parsing fails.
-func ToTime(s string, defaultValue time.Time) time.Time {
-	val, err := ParseTime(s)
-	if err != nil {
-		return defaultValue
-	}
-	return val
+	return s
 }

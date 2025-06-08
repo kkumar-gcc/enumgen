@@ -3,16 +3,17 @@ package types
 import (
 	"fmt"
 
+	"github.com/kkumar-gcc/enumgen/pkg/strconvx"
 	"github.com/kkumar-gcc/enumgen/src/contracts/compiler"
 	"github.com/kkumar-gcc/enumgen/src/token"
 )
 
-type StringHandler struct{}
+type StringFormatter struct{}
 
-func (r *StringHandler) GoTypeName() string { return "string" }
-func (r *StringHandler) ZeroValue() any     { return "" }
+func (r *StringFormatter) GoTypeName() string { return "string" }
+func (r *StringFormatter) ZeroValue() any     { return "" }
 
-func (r *StringHandler) FormatMemberValue(irValue compiler.IRValue, memberName string, index int) (any, error) {
+func (r *StringFormatter) FormatMemberValue(irValue compiler.IRValue, memberName string, index int) (any, error) {
 	if irValue == nil {
 		return memberName, nil
 	}
@@ -26,5 +27,5 @@ func (r *StringHandler) FormatMemberValue(irValue compiler.IRValue, memberName s
 		return nil, fmt.Errorf("type error for member '%s': string enum expects a STRING literal, got %v", memberName, literal.Kind())
 	}
 
-	return literal.Value(), nil
+	return strconvx.Unquote(literal.Value()), nil
 }

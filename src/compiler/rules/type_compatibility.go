@@ -175,6 +175,7 @@ func floatRange(bitSize int) (max *big.Float, minNeg *big.Float) {
 
 var (
 	intTypeToBitSize = map[string]int{
+		"int":   64,
 		"int8":  8,
 		"int16": 16,
 		"int32": 32,
@@ -182,6 +183,7 @@ var (
 	}
 
 	uintTypeToBitSize = map[string]int{
+		"uint":   64,
 		"uint8":  8,
 		"uint16": 16,
 		"uint32": 32,
@@ -203,7 +205,7 @@ func isFitsInTypeRange(lit *ast.BasicLit, expectedType string) error {
 	}
 
 	switch expectedType {
-	case "int8", "int16", "int32", "int64":
+	case "int", "int8", "int16", "int32", "int64":
 		if val.Kind() != goconst.Int {
 			return fmt.Errorf("literal %s is not an integer", litStr)
 		}
@@ -229,7 +231,7 @@ func isFitsInTypeRange(lit *ast.BasicLit, expectedType string) error {
 
 		return nil
 
-	case "uint8", "uint16", "uint32", "uint64":
+	case "uint", "uint8", "uint16", "uint32", "uint64":
 		if val.Kind() != goconst.Int {
 			return fmt.Errorf("literal %s is not an integer", litStr)
 		}
@@ -249,7 +251,7 @@ func isFitsInTypeRange(lit *ast.BasicLit, expectedType string) error {
 
 		return nil
 
-	case "float32", "float64":
+	case "float", "float32", "float64":
 		if val.Kind() != goconst.Float && val.Kind() != goconst.Int {
 			return fmt.Errorf("literal %s is not a numeric value", litStr)
 		}

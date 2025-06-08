@@ -9,11 +9,11 @@ import (
 	"github.com/kkumar-gcc/enumgen/src/token"
 )
 
-type CharHandler struct{}
+type CharFormatter struct{}
 
-func (r *CharHandler) GoTypeName() string { return "rune" }
-func (r *CharHandler) ZeroValue() any     { return rune(0) }
-func (r *CharHandler) FormatMemberValue(irValue compiler.IRValue, memberName string, index int) (any, error) {
+func (r *CharFormatter) GoTypeName() string { return "rune" }
+func (r *CharFormatter) ZeroValue() any     { return rune(0) }
+func (r *CharFormatter) FormatMemberValue(irValue compiler.IRValue, memberName string, index int) (any, error) {
 	if irValue == nil {
 		return rune(index), nil
 	}

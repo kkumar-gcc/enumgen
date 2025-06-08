@@ -2,6 +2,8 @@ package codegen
 
 import (
 	"sync"
+
+	"github.com/kkumar-gcc/enumgen/src/codegen/golang"
 )
 
 var (
@@ -13,7 +15,10 @@ func Init() {
 	once.Do(func() {
 		DefaultRegistry = NewRegistry()
 
-		//DefaultRegistry.Register(golang.NewGenerator())
-		//DefaultRegistry.Register(typescript.NewGenerator())
+		goGenerator, err := golang.New()
+		if err != nil {
+			panic("failed to initialize Go generator: " + err.Error())
+		}
+		DefaultRegistry.Register(goGenerator)
 	})
 }

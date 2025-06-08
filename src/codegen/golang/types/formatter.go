@@ -2,7 +2,7 @@ package types
 
 import "github.com/kkumar-gcc/enumgen/src/contracts/compiler"
 
-type TypeHandler interface {
+type ValueFormatter interface {
 	// GoTypeName returns the actual Go type name (e.g., "string", "int32").
 	GoTypeName() string
 

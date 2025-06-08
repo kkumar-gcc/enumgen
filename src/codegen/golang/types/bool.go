@@ -7,12 +7,12 @@ import (
 	"github.com/kkumar-gcc/enumgen/src/token"
 )
 
-type BoolHandler struct{}
+type BoolFormatter struct{}
 
-func (r *BoolHandler) GoTypeName() string { return "bool" }
-func (r *BoolHandler) ZeroValue() any     { return false }
+func (r *BoolFormatter) GoTypeName() string { return "bool" }
+func (r *BoolFormatter) ZeroValue() any     { return false }
 
-func (r *BoolHandler) FormatMemberValue(irValue compiler.IRValue, memberName string, index int) (any, error) {
+func (r *BoolFormatter) FormatMemberValue(irValue compiler.IRValue, memberName string, index int) (any, error) {
 	if irValue == nil {
 		return false, nil
 	}

@@ -8,16 +8,16 @@ import (
 	"github.com/kkumar-gcc/enumgen/src/token"
 )
 
-type FloatHandler struct {
+type FloatFormatter struct {
 	ConcreteGoType string
 }
 
-func (r *FloatHandler) GoTypeName() string { return r.ConcreteGoType }
-func (r *FloatHandler) ZeroValue() any {
+func (r *FloatFormatter) GoTypeName() string { return r.ConcreteGoType }
+func (r *FloatFormatter) ZeroValue() any {
 	return 0.0
 }
 
-func (r *FloatHandler) FormatMemberValue(irValue compiler.IRValue, memberName string, index int) (any, error) {
+func (r *FloatFormatter) FormatMemberValue(irValue compiler.IRValue, memberName string, index int) (any, error) {
 	bitSize := 64
 	if r.ConcreteGoType == "float32" {
 		bitSize = 32
@@ -40,7 +40,7 @@ func (r *FloatHandler) FormatMemberValue(irValue compiler.IRValue, memberName st
 	return val, nil
 }
 
-func (r *FloatHandler) getNumericString(irValue compiler.IRValue) (valueStr string, kind token.Token, err error) {
+func (r *FloatFormatter) getNumericString(irValue compiler.IRValue) (valueStr string, kind token.Token, err error) {
 	switch v := irValue.(type) {
 	case compiler.IRLiteral:
 		return v.Value(), v.Kind(), nil
