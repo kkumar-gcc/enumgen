@@ -30,7 +30,7 @@ It provides detailed information about each option, including its default value 
 			return cli.Exit(fmt.Sprintf("Error: Language '%s' not found. Please check the available languages.", lang), 1)
 		}
 
-		options := generator.GetDefaultOptions()
+		options := generator.DefaultOptions()
 		if len(options) == 0 {
 			return cli.Exit(fmt.Sprintf("No options available for language '%s'.", lang), 0)
 		}

@@ -2,8 +2,6 @@ package codegen
 
 import (
 	"fmt"
-	"path/filepath"
-
 	"github.com/kkumar-gcc/enumgen/src/contracts/compiler"
 )
 
@@ -34,9 +32,7 @@ func (r *CodeGenerationStage) Process(ctx *compiler.Context) error {
 		return err
 	}
 
-	langOutputDir := filepath.Join(ctx.OutputDir, ctx.TargetLang)
-
-	files, err := generator.Generate(irModule, langOutputDir, ctx.GenerationConfig)
+	files, err := generator.Generate(irModule, ctx.GenerationConfig)
 	if err != nil {
 		return fmt.Errorf("code generation failed: %w", err)
 	}

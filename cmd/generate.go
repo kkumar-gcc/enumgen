@@ -2,6 +2,10 @@ package cmd
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/urfave/cli/v3"
 
 	"github.com/kkumar-gcc/enumgen/src/compiler"
@@ -54,10 +58,30 @@ It reads the source files, parses them, and generates the corresponding enum def
 		generationOptions := cmd.StringMap("options")
 		compilerCtx, err := compiler.CompileFile(fileName, outputDir, targetLang, strict, generationOptions)
 		if err != nil {
-			return cli.Exit("Error: Failed to compile file: "+err.Error(), 1)
+			if len(compilerCtx.Errors) > 0 {
+				fmt.Println(compilerCtx.Errors.Format())
+				return nil
+			}
+
+			fmt.Println(compilerCtx.Errors.Format())
+			return nil
 		}
-		if len(compilerCtx.Errors) > 0 {
-			return cli.Exit("Error: Compilation errors occurred:\n"+compilerCtx.Errors.Summary(), 1)
+
+		if compilerCtx.Validations.HasErrors() {
+			fmt.Println(compilerCtx.Validations.FormatErrors())
+			return nil
+		}
+
+		if compilerCtx.Validations.HasWarnings() {
+			fmt.Println(compilerCtx.Validations.FormatWarnings())
+		}
+
+		outputDir = compilerCtx.OutputDir
+		for _, file := range compilerCtx.OutputFiles {
+			file.Path = filepath.Join(outputDir, file.Path)
+			if err := os.WriteFile(file.Path, file.Body, 0644); err != nil {
+				return fmt.Errorf("failed to write file %s: %w", file.Path, err)
+			}
 		}
 		return nil
 	},

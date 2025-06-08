@@ -54,7 +54,7 @@ func (r *Registry) PrintLanguageOptions() string {
 
 		sb.WriteString(fmt.Sprintf("- %s (%s)\n", generator.Name(), lang))
 
-		options := generator.GetDefaultOptions()
+		options := generator.DefaultOptions()
 		if len(options) > 0 {
 			sb.WriteString("  Options:\n")
 			sb.WriteString(generator.OptionHelp())
