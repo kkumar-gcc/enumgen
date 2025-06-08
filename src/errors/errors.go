@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/kkumar-gcc/enumgen/pkg/color"
 	"github.com/kkumar-gcc/enumgen/src/token"
 )
 
@@ -17,6 +18,21 @@ const (
 	SeverityInfo
 )
 
+func (s Severity) String() string {
+	switch s {
+	case SeverityWarning:
+		return "warning"
+	case SeverityError:
+		return "error"
+	case SeverityFatal:
+		return "fatal"
+	case SeverityInfo:
+		return "info"
+	default:
+		return "unknown"
+	}
+}
+
 type CompilationError struct {
 	Pos      token.Position
 	Msg      string
@@ -26,28 +42,40 @@ type CompilationError struct {
 	Filename string
 }
 
-func (e *CompilationError) Error() string {
-	prefix := "warning"
-	if e.Severity == SeverityError {
-		prefix = "error"
-	} else if e.Severity == SeverityFatal {
-		prefix = "fatal error"
-	} else if e.Severity == SeverityInfo {
-		prefix = "info"
+func (r *CompilationError) Error() string {
+	return fmt.Sprintf("%s: %s: %s", r.Pos.String(), r.Severity, r.Msg)
+}
+
+func (r *CompilationError) Format() string {
+	var sb strings.Builder
+
+	var severityPrinter func(...any) string
+	switch r.Severity {
+	case SeverityError, SeverityFatal:
+		severityPrinter = color.Error
+	case SeverityWarning:
+		severityPrinter = color.Warning
+	default:
+		severityPrinter = color.Info
 	}
 
-	location := e.Pos.String()
-	if e.Filename != "" && !strings.Contains(location, e.Filename) {
-		location = fmt.Sprintf("%s:%s", e.Filename, location)
+	header := fmt.Sprintf("%s: %s: %s",
+		color.Bold(r.Pos.String()),
+		severityPrinter(r.Severity),
+		r.Msg,
+	)
+	sb.WriteString(header)
+
+	if r.Stage != "" {
+		sb.WriteString(fmt.Sprintf(" %s", color.Rule(fmt.Sprintf("[%s]", r.Stage))))
 	}
 
-	message := fmt.Sprintf("%s: %s: %s", location, prefix, e.Msg)
-
-	if e.Fix != "" {
-		message += fmt.Sprintf("\n   └─ Suggestion: %s", e.Fix)
+	if r.Fix != "" {
+		sb.WriteString("\n")
+		sb.WriteString(fmt.Sprintf("  %s", color.Hint("hint: "+r.Fix)))
 	}
 
-	return message
+	return sb.String()
 }
 
 type ErrorList []*CompilationError
@@ -102,44 +130,60 @@ func (l ErrorList) FilterBySeverity(severity Severity) ErrorList {
 	return filtered
 }
 
-func (l ErrorList) Summary() string {
-	errorCount := 0
-	warningCount := 0
-	infoCount := 0
-	fatalCount := 0
+func (l ErrorList) Format() string {
+	if len(l) == 0 {
+		return color.Success("✔ Validation successful.")
+	}
 
-	for _, err := range l {
-		switch err.Severity {
-		case SeverityError:
-			errorCount++
-		case SeverityWarning:
-			warningCount++
-		case SeverityInfo:
-			infoCount++
-		case SeverityFatal:
-			fatalCount++
+	l.SortByPosition()
+	var sb strings.Builder
+
+	for i, err := range l {
+		sb.WriteString(err.Format())
+		if i < len(l)-1 {
+			sb.WriteString("\n")
 		}
 	}
 
+	summary := l.Summary()
+	if summary != "" {
+		sb.WriteString("\n")
+		sb.WriteString(color.Rule(summary))
+	}
+
+	return sb.String()
+}
+
+func (l ErrorList) Summary() string {
+	counts := make(map[Severity]int)
+	for _, err := range l {
+		counts[err.Severity]++
+	}
+
 	var parts []string
-	if fatalCount > 0 {
-		parts = append(parts, fmt.Sprintf("%d fatal", fatalCount))
+	if count := counts[SeverityFatal]; count > 0 {
+		parts = append(parts, color.Error(fmt.Sprintf("%d fatal", count)))
 	}
-	if errorCount > 0 {
-		parts = append(parts, fmt.Sprintf("%d errors", errorCount))
+	if count := counts[SeverityError]; count > 0 {
+		parts = append(parts, color.Error(fmt.Sprintf("%d errors", count)))
 	}
-	if warningCount > 0 {
-		parts = append(parts, fmt.Sprintf("%d warnings", warningCount))
+	if count := counts[SeverityWarning]; count > 0 {
+		parts = append(parts, color.Warning(fmt.Sprintf("%d warnings", count)))
 	}
-	if infoCount > 0 {
-		parts = append(parts, fmt.Sprintf("%d info messages", infoCount))
+	if count := counts[SeverityInfo]; count > 0 {
+		parts = append(parts, color.Info(fmt.Sprintf("%d info", count)))
 	}
 
 	if len(parts) == 0 {
-		return "No issues found"
+		return color.Success("No issues found.")
 	}
 
-	return fmt.Sprintf("Found %s", strings.Join(parts, ", "))
+	prefix := color.Error("✖ Found")
+	if !l.HasErrors() && l.HasFatal() {
+		prefix = color.Warning("✖ Found")
+	}
+
+	return fmt.Sprintf("%s %s.", prefix, strings.Join(parts, " and "))
 }
 
 func (l ErrorList) Error() string {
