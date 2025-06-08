@@ -2,8 +2,8 @@ package types
 
 import (
 	"fmt"
+	"strconv"
 
-	"github.com/kkumar-gcc/enumgen/pkg/strconvx"
 	"github.com/kkumar-gcc/enumgen/src/contracts/compiler"
 	"github.com/kkumar-gcc/enumgen/src/token"
 )
@@ -27,5 +27,10 @@ func (r *StringFormatter) FormatMemberValue(irValue compiler.IRValue, memberName
 		return nil, fmt.Errorf("type error for member '%s': string enum expects a STRING literal, got %v", memberName, literal.Kind())
 	}
 
-	return strconvx.Unquote(literal.Value()), nil
+	unquoted, err := strconv.Unquote(literal.Value())
+	if err != nil {
+		return nil, fmt.Errorf("syntax error for member '%s': invalid string literal %s", memberName, literal.Value())
+	}
+
+	return unquoted, nil
 }

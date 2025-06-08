@@ -175,77 +175,98 @@ exit:
 }
 
 func (r *Lexer) lexString() string {
-	pos := r.pos - 1
+	pos := r.pos
 	for {
-		ch := r.ch
-		if ch == '\n' || ch < 0 {
-			// error
+		if r.ch == '"' {
 			break
 		}
 
+		if r.ch == '\\' {
+			r.next()
+		}
+
+		if r.ch == EOF {
+			break
+		}
 		r.next()
-		if ch == '\\' {
-			// Handle escape sequences
-			if r.ch == '"' || r.ch == '\\' || r.ch == 'n' || r.ch == 't' || r.ch == 'r' {
-				r.next()
-				continue
-			}
-		} else if ch == '"' {
-			break
-		}
 	}
-
-	return string(r.src[pos:r.pos])
+	lit := string(r.src[pos:r.pos])
+	r.next()
+	return `"` + lit + `"`
 }
 
 func (r *Lexer) lexChar() string {
-	pos := r.pos - 1
+	pos := r.pos
 	for {
-		ch := r.ch
-		if ch == '\n' || ch < 0 {
-			// error
+		if r.ch == '\'' {
+			break
+		}
+
+		if r.ch == '\\' {
+			r.next()
+		}
+
+		if r.ch == EOF || r.ch == '\n' {
 			break
 		}
 
 		r.next()
-		if ch == '\\' {
-			// Handle escape sequences
-			if r.ch == '\'' || r.ch == '\\' || r.ch == 'n' || r.ch == 't' || r.ch == 'r' {
-				r.next()
-				continue
-			}
-		} else if ch == '\'' {
-			break
-		}
 	}
 
-	return string(r.src[pos:r.pos])
+	lit := string(r.src[pos:r.pos])
+
+	r.next()
+	return `'` + lit + `'`
 }
 
 func (r *Lexer) lexNumber() (token.Token, string) {
 	start := r.pos
-	tok := token.ILLEGAL
+	tok := token.INT
 
-	if r.ch == '.' {
-		tok = token.FLOAT
-		r.next()
+	scanDigits := func() {
 		for isDigit(r.ch) {
 			r.next()
 		}
-		return tok, string(r.src[start:r.pos])
 	}
 
-	tok = token.INT
-	for isDigit(r.ch) {
+	if r.ch == '0' {
 		r.next()
+		switch lower(r.ch) {
+		case 'x':
+			r.next()
+			for isHex(r.ch) {
+				r.next()
+			}
+			return token.INT, string(r.src[start:r.pos])
+		case 'o':
+			r.next()
+			for '0' <= r.ch && r.ch <= '7' {
+				r.next()
+			}
+			return token.INT, string(r.src[start:r.pos])
+		case 'b':
+			r.next()
+			for r.ch == '0' || r.ch == '1' {
+				r.next()
+			}
+			return token.INT, string(r.src[start:r.pos])
+		}
 	}
 
+	scanDigits()
 	if r.ch == '.' {
 		tok = token.FLOAT
 		r.next()
-		for isDigit(r.ch) {
+		scanDigits()
+	}
+
+	if lower(r.ch) == 'e' {
+		tok = token.FLOAT
+		r.next()
+		if r.ch == '-' || r.ch == '+' {
 			r.next()
 		}
+		scanDigits()
 	}
 
 	return tok, string(r.src[start:r.pos])

@@ -36,9 +36,15 @@ func (r *TypeCompatibilityRule) Check(ctx *compiler.Context, node ast.Node) []co
 	for _, member := range enumDef.Members {
 		switch expr := member.Value.(type) {
 		case *ast.KeyValueExpr:
-			issues = append(issues, r.checkKeyValue(expr, declared, used)...) // key:value pairs
+			issues = append(issues, r.checkKeyValue(expr, declared, used)...)
 		case *ast.BasicLit:
-			issues = append(issues, r.checkLiteralMember(expr, declared, used)...) // single literal
+			issues = append(issues, r.checkLiteralMember(expr, declared, used)...)
+		case nil:
+			// This case handles iota-style enum members (e.g., "NORTH,") that have no
+			// explicit value assigned in the source file. From a type-checking
+			// perspective, this is always a valid declaration. The actual value
+			// (e.g., based on the member's index) will be determined during the
+			// code generation stage, so no action is needed here.
 		default:
 			issues = append(issues, r.newError(member.Pos(),
 				"unsupported enum member value type",
@@ -292,10 +298,6 @@ func isFitsInTypeRange(lit *ast.BasicLit, expectedType string) error {
 	case "char":
 		if lit.Kind != token.CHAR {
 			return fmt.Errorf("literal %s is not a character literal", litStr)
-		}
-
-		if len(lit.Value) != 3 || lit.Value[0] != '\'' || lit.Value[2] != '\'' || lit.Value[1] < 0 {
-			return fmt.Errorf("literal %s is not a valid character literal", litStr)
 		}
 
 		return nil
