@@ -2,6 +2,10 @@ package rules
 
 import (
 	"fmt"
+	goconst "go/constant"
+	gotoken "go/token"
+	"math"
+	"math/big"
 
 	"github.com/kkumar-gcc/enumgen/src/ast"
 	"github.com/kkumar-gcc/enumgen/src/contracts/compiler"
@@ -33,10 +37,8 @@ func (r *TypeCompatibilityRule) Check(ctx *compiler.Context, node ast.Node) []co
 		switch expr := member.Value.(type) {
 		case *ast.KeyValueExpr:
 			issues = append(issues, r.checkKeyValue(expr, declared, used)...) // key:value pairs
-
 		case *ast.BasicLit:
 			issues = append(issues, r.checkLiteralMember(expr, declared, used)...) // single literal
-
 		default:
 			issues = append(issues, r.newError(member.Pos(),
 				"unsupported enum member value type",
@@ -108,10 +110,9 @@ func (r *TypeCompatibilityRule) checkLiteral(expr ast.Expr, expectedType string,
 	if !ok {
 		return []compiler.Issue{r.newError(exprPos, msg, fix)}
 	}
-	actual := literalType(lit.Kind)
-	if actual != expectedType {
+	if err := isFitsInTypeRange(lit, expectedType); err != nil {
 		return []compiler.Issue{r.newError(exprPos,
-			fmt.Sprintf("literal type '%s' does not match expected '%s'", actual, expectedType),
+			fmt.Sprintf("literal %s is not a valid %s: %v", lit.Value, expectedType, err),
 			fix)}
 	}
 	return nil
@@ -127,17 +128,177 @@ func (r *TypeCompatibilityRule) newError(pos token.Position, msg, fix string) co
 	}
 }
 
-func literalType(kind token.Token) string {
-	switch kind {
+func makeUntypedConst(lit *ast.BasicLit) (goconst.Value, error) {
+	var goKind gotoken.Token
+	switch lit.Kind {
 	case token.INT:
-		return "int"
+		goKind = gotoken.INT
 	case token.FLOAT:
-		return "float"
-	case token.CHAR, token.STRING:
-		return "string"
+		goKind = gotoken.FLOAT
+	case token.STRING:
+		goKind = gotoken.STRING
+	case token.CHAR:
+		goKind = gotoken.CHAR
 	case token.TRUE, token.FALSE:
-		return "bool"
+		return goconst.MakeBool(lit.Kind == token.TRUE), nil
 	default:
-		return "unknown"
+		return nil, fmt.Errorf("unsupported literal kind %s", lit.Kind)
+	}
+	return goconst.MakeFromLiteral(lit.Value, goKind, 0), nil
+}
+
+func intRange(bitSize int) (min *big.Int, max *big.Int) {
+	one := big.NewInt(1)
+	two := big.NewInt(2)
+	pow := new(big.Int).Exp(two, big.NewInt(int64(bitSize-1)), nil)
+	max = new(big.Int).Sub(pow, one) // 2^(b-1)-1
+	min = new(big.Int).Neg(pow)      // -2^(b-1)
+	return
+}
+
+func uintRange(bitSize int) (min *big.Int, max *big.Int) {
+	two := big.NewInt(2)
+	pow := new(big.Int).Exp(two, big.NewInt(int64(bitSize)), nil) // 2^bitSize
+	max = new(big.Int).Sub(pow, big.NewInt(1))                    // 2^b - 1
+	min = big.NewInt(0)
+	return
+}
+
+func floatRange(bitSize int) (max *big.Float, minNeg *big.Float) {
+	if bitSize == 32 {
+		m := new(big.Float).SetFloat64(math.MaxFloat32)
+		return m, new(big.Float).Neg(m)
+	}
+	m := new(big.Float).SetFloat64(math.MaxFloat64)
+	return m, new(big.Float).Neg(m)
+}
+
+var (
+	intTypeToBitSize = map[string]int{
+		"int8":  8,
+		"int16": 16,
+		"int32": 32,
+		"int64": 64,
+	}
+
+	uintTypeToBitSize = map[string]int{
+		"uint8":  8,
+		"uint16": 16,
+		"uint32": 32,
+		"uint64": 64,
+	}
+
+	floatTypeToBitSize = map[string]int{
+		"float32": 32,
+		"float64": 64,
+	}
+)
+
+// isFitsInTypeRange returns nil if lit can be represented exactly as expectedType.
+func isFitsInTypeRange(lit *ast.BasicLit, expectedType string) error {
+	litStr := lit.Value
+	val, err := makeUntypedConst(lit)
+	if err != nil {
+		return fmt.Errorf("cannot parse literal %q: %v", litStr, err)
+	}
+
+	switch expectedType {
+	case "int8", "int16", "int32", "int64":
+		if val.Kind() != goconst.Int {
+			return fmt.Errorf("literal %s is not an integer", litStr)
+		}
+
+		bitSize := intTypeToBitSize[expectedType]
+
+		minInt, maxInt := intRange(bitSize)
+		minConst := goconst.Make(minInt)
+		maxConst := goconst.Make(maxInt)
+
+		isTooSmall := goconst.Compare(val, gotoken.LSS, minConst)
+		isTooLarge := goconst.Compare(val, gotoken.GTR, maxConst)
+
+		if isTooSmall || isTooLarge {
+			return fmt.Errorf(
+				"integer %s out of range for %s (min: %s, max: %s)",
+				litStr,
+				expectedType,
+				minInt.String(),
+				maxInt.String(),
+			)
+		}
+
+		return nil
+
+	case "uint8", "uint16", "uint32", "uint64":
+		if val.Kind() != goconst.Int {
+			return fmt.Errorf("literal %s is not an integer", litStr)
+		}
+
+		if goconst.Sign(val) < 0 {
+			return fmt.Errorf("integer %s is negative, cannot assign to %s", litStr, expectedType)
+		}
+
+		bitSize := uintTypeToBitSize[expectedType]
+		_, maxBigInt := uintRange(bitSize)
+
+		maxConst := goconst.Make(maxBigInt)
+
+		if goconst.Compare(val, gotoken.GTR, maxConst) {
+			return fmt.Errorf("integer %s out of range for %s (max: %s)", litStr, expectedType, maxBigInt.String())
+		}
+
+		return nil
+
+	case "float32", "float64":
+		if val.Kind() != goconst.Float && val.Kind() != goconst.Int {
+			return fmt.Errorf("literal %s is not a numeric value", litStr)
+		}
+
+		bitSize := floatTypeToBitSize[expectedType]
+		maxFloat, minNegFloat := floatRange(bitSize)
+
+		maxConst := goconst.Make(maxFloat)
+		minConst := goconst.Make(minNegFloat)
+
+		isTooLarge := goconst.Compare(val, gotoken.GTR, maxConst)
+		isTooSmall := goconst.Compare(val, gotoken.LSS, minConst)
+
+		if isTooSmall || isTooLarge {
+			return fmt.Errorf(
+				"floating-point literal %s out of range for %s",
+				litStr,
+				expectedType,
+			)
+		}
+
+		return nil
+
+	case "true", "false", "bool":
+		if lit.Kind != token.TRUE && lit.Kind != token.FALSE {
+			return fmt.Errorf("literal %s is not a boolean literal", litStr)
+		}
+
+		return nil
+
+	case "string":
+		if lit.Kind != token.STRING {
+			return fmt.Errorf("literal %s is not a string literal", litStr)
+		}
+
+		return nil
+
+	case "char":
+		if lit.Kind != token.CHAR {
+			return fmt.Errorf("literal %s is not a character literal", litStr)
+		}
+
+		if len(lit.Value) != 3 || lit.Value[0] != '\'' || lit.Value[2] != '\'' || lit.Value[1] < 0 {
+			return fmt.Errorf("literal %s is not a valid character literal", litStr)
+		}
+
+		return nil
+
+	default:
+		return fmt.Errorf("unknown or unsupported target type %q", expectedType)
 	}
 }

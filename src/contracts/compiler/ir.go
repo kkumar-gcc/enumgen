@@ -19,6 +19,11 @@ type IRValue interface {
 	String() string
 }
 
+type IRUnary interface {
+	IRValue
+	Operand() IRValue
+}
+
 type IRKeyValue interface {
 	IRValue
 	Key() IRValue

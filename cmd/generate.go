@@ -57,16 +57,6 @@ It reads the source files, parses them, and generates the corresponding enum def
 		strict := cmd.Bool("strict")
 		generationOptions := cmd.StringMap("options")
 		compilerCtx, err := compiler.CompileFile(fileName, outputDir, targetLang, strict, generationOptions)
-		if err != nil {
-			if len(compilerCtx.Errors) > 0 {
-				fmt.Println(compilerCtx.Errors.Format())
-				return nil
-			}
-
-			fmt.Println(compilerCtx.Errors.Format())
-			return nil
-		}
-
 		if compilerCtx.Validations.HasErrors() {
 			fmt.Println(compilerCtx.Validations.FormatErrors())
 			return nil
@@ -74,6 +64,16 @@ It reads the source files, parses them, and generates the corresponding enum def
 
 		if compilerCtx.Validations.HasWarnings() {
 			fmt.Println(compilerCtx.Validations.FormatWarnings())
+		}
+
+		if err != nil {
+			if len(compilerCtx.Errors) > 0 {
+				fmt.Println(compilerCtx.Errors.Format())
+				return nil
+			}
+
+			fmt.Println(err)
+			return nil
 		}
 
 		outputDir = compilerCtx.OutputDir

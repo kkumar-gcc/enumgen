@@ -74,6 +74,15 @@ type (
 		Value    string
 	}
 
+	// UnaryExpr represents a unary expression like `-x` or `!y`.
+	// TODO: It is still not clear how to handle unary expressions in enum definitions.
+	// For now, we will treat them as invalid, but we might need to revisit this.
+	UnaryExpr struct {
+		OpPos token.Position
+		Op    token.Token
+		X     Expr
+	}
+
 	KeyValueExpr struct {
 		Key   Expr
 		Colon token.Position
@@ -144,6 +153,13 @@ func (r *BasicLit) End() token.Position {
 }
 func (r *BasicLit) String() string { return r.Value }
 func (r *BasicLit) exprNode()      {}
+
+func (r *UnaryExpr) Pos() token.Position { return r.OpPos }
+func (r *UnaryExpr) End() token.Position { return r.X.End() }
+func (r *UnaryExpr) String() string {
+	return r.Op.String() + r.X.String()
+}
+func (r *UnaryExpr) exprNode() {}
 
 func (r *KeyValueExpr) Pos() token.Position { return r.Key.Pos() }
 func (r *KeyValueExpr) End() token.Position { return r.Value.End() }

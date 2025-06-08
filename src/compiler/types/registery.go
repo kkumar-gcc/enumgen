@@ -44,14 +44,16 @@ func (r *Registry) IsPrimitive(name string) bool {
 
 var primitives = map[string]compiler.Type{
 	"int":     NewType(compiler.TypePrimitive, "int", nil),
-	"string":  NewType(compiler.TypePrimitive, "string", nil),
-	"bool":    NewType(compiler.TypePrimitive, "bool", nil),
-	"float":   NewType(compiler.TypePrimitive, "float", nil),
 	"int32":   NewType(compiler.TypePrimitive, "int32", nil),
 	"int64":   NewType(compiler.TypePrimitive, "int64", nil),
+	"char":    NewType(compiler.TypePrimitive, "char", nil),
+	"string":  NewType(compiler.TypePrimitive, "string", nil),
+	"bool":    NewType(compiler.TypePrimitive, "bool", nil),
 	"uint":    NewType(compiler.TypePrimitive, "uint", nil),
+	"uint8":   NewType(compiler.TypePrimitive, "uint8", nil),
 	"uint32":  NewType(compiler.TypePrimitive, "uint32", nil),
 	"uint64":  NewType(compiler.TypePrimitive, "uint64", nil),
+	"float":   NewType(compiler.TypePrimitive, "float", nil),
 	"float32": NewType(compiler.TypePrimitive, "float32", nil),
 	"float64": NewType(compiler.TypePrimitive, "float64", nil),
 }

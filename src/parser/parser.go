@@ -265,7 +265,7 @@ func (p *Parser) parseMember() *ast.MemberDefinition {
 
 func (p *Parser) isLiteral(tok token.Token) bool {
 	switch tok {
-	case token.INT, token.FLOAT, token.STRING, token.CHAR, token.IDENT:
+	case token.INT, token.FLOAT, token.STRING, token.CHAR, token.IDENT, token.TRUE, token.FALSE:
 		return true
 	default:
 		return false
